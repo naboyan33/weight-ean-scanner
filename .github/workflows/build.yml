@@ -13,22 +13,27 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: 'gradle'   # кэш Maven/Gradle-зависимостей (не Gradle-дистрибутива)
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           log-accepted-android-sdk-licenses: true
 
-      # Ключевой шаг: ставим Gradle и отключаем его внутренний cache механизма
-      - name: Build debug APK (no gradle cache)
-        uses: gradle/gradle-build-action@v3
-        with:
-          gradle-version: 8.7
-          arguments: clean :app:assembleDebug
-          cache-disabled: true   # <- отключает кэш дистрибутива Gradle, чтобы не ловить 400 от GH Cache
+      - name: Install Android platforms & build-tools
+        run: |
+          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Upload APK
+      - name: Download Gradle 8.7
+        run: |
+          curl -sL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o gradle.zip
+          unzip -q gradle.zip
+          echo "$GITHUB_WORKSPACE/gradle-8.7/bin" >> $GITHUB_PATH
+
+      # Сборка без wrapper'а
+      - name: Build debug APK
+        run: gradle -v && gradle clean :app:assembleDebug
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
