@@ -7,4 +7,11 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
-allprojects { repositories { google(); mavenCentral() } }
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        jcenter()  // резервный
+    }
+}
+
