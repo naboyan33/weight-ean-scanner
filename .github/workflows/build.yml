@@ -1,14 +1,24 @@
-name: Android APK
-on: [push]
+name: Android APK (debug w/ logs)
+on: [push, workflow_dispatch]
 
 env:
-  PROJECT_DIR: weight-ean-scanner_v1_2   # ← ИМЯ ТВОЕЙ ПАПКИ (замени!)
+  PROJECT_DIR: weight-ean-scanner_v1_2   # ← замени на точное имя папки с app/
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Print workspace layout
+        run: |
+          pwd
+          ls -la
+          echo "---- ${PROJECT_DIR} ----"
+          ls -la "${PROJECT_DIR}" || true
+          echo "---- ${PROJECT_DIR}/app ----"
+          ls -la "${PROJECT_DIR}/app" || true
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -31,11 +41,24 @@ jobs:
           unzip -q gradle.zip
           echo "$GITHUB_WORKSPACE/gradle-8.7/bin" >> $GITHUB_PATH
 
-      - name: Build debug APK
+      - name: Gradle version
         working-directory: ${{ env.PROJECT_DIR }}
-        run: gradle clean :app:assembleDebug
+        run: gradle -v
 
-      - name: Upload APK artifact
+      - name: Build debug APK (verbose)
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          set -o pipefail
+          gradle clean :app:assembleDebug --stacktrace --info 2>&1 | tee build.log
+
+      - name: Upload logs (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-logs
+          path: ${{ env.PROJECT_DIR }}/build.log
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
